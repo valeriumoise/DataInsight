@@ -57,23 +57,37 @@ BEGIN
                || ' GROUP BY '
                || group_by_str
                || ' )';
+
     EXECUTE IMMEDIATE dml_str;
-    
     deleted_records := SQL%rowcount;
     dbms_sql.close_cursor(v_cursor_id);
-    
-
-    RETURN deleted_records;    
-End;
+    RETURN deleted_records;
 EXCEPTION
-   WHEN OTHERS
-   THEN
-   DECLARE
-      error_code NUMBER := SQLCODE;
-   BEGIN
-        IF error_code = -2292
-        THEN
-            dbms_output.put_line('Found duplicates but both have references. Use merge_duplicates() merge records.');
-        END IF;
-    END;
+    WHEN OTHERS THEN
+        DECLARE
+            error_code NUMBER := sqlcode;
+        BEGIN
+            IF error_code = -2292 THEN
+                dml_str := 'DELETE FROM '
+                           || table_name
+                           || ' WHERE rowid NOT IN ( SELECT max(ROWID) FROM '
+                           || table_name
+                           || ' GROUP BY '
+                           || group_by_str
+                           || ' )';
+
+                EXECUTE IMMEDIATE dml_str;
+            END IF;
+
+        EXCEPTION
+            WHEN OTHERS THEN
+                DECLARE
+                    error_code NUMBER := sqlcode;
+                BEGIN
+                    IF error_code = -2292 THEN
+                        dbms_output.put_line('Found duplicates but both have references. Use merge_duplicates() merge records.');
+                        RETURN -2292;
+                    END IF;
+                END;
+        END;
 END;
