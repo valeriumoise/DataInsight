@@ -200,12 +200,43 @@ BEGIN
     return true;
 END;
 /
-set serveroutput on;
+CREATE OR REPLACE TYPE return_type as object(poz_start number, poz_finish number);
+/
+CREATE OR REPLACE FUNCTION check_where_regexp(
+    regexp varchar2,
+    mydatafirst varchar2
+) return return_type
+IS
+    v_length_mydatafirst number;
+    v_this_index number;
+    v_current_data varchar2(200);
+    return_data return_type;
 BEGIN
+    return_data := return_type(0,0);
     my_public_package.my_index := 1;
-    if(edit_col_by_regexp_f('(ab)*cd\[8\]rrst.1','cd[8]rrstP1')=true) then
-        dbms_output.put_line('valid');
-    else
-        dbms_output.put_line('invalid');
-    end if;
+--    return_data.poz_start := 0;
+--    return_data.poz_finish := 0;
+    v_length_mydatafirst := length(mydatafirst);
+    v_this_index := 1;
+    v_current_data := '';
+    WHILE (v_this_index <= v_length_mydatafirst) LOOP
+        v_current_data := SUBSTR(mydatafirst,v_this_index,(v_length_mydatafirst-v_this_index+1));
+        if(edit_col_by_regexp_f(regexp,v_current_data)=true) then
+            return_data.poz_start := v_this_index;
+            return_data.poz_finish := my_public_package.my_index-1+v_this_index-1;
+            return return_data;
+        end if;
+        v_current_data := '';
+        v_this_index := v_this_index+1;
+    END LOOP;   
+    return return_data;
+END;
+/   
+set serveroutput on;
+DECLARE
+    new_data return_type;
+BEGIN
+    new_data := check_where_regexp('aaa.','aazac');
+        dbms_output.put_line('start: ' || new_data.poz_start);
+        dbms_output.put_line('end: ' || new_data.poz_finish);
 END;
