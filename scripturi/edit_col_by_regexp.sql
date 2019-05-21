@@ -1,5 +1,5 @@
 CREATE OR REPLACE PACKAGE my_public_package IS
-  my_index number;
+  my_global_index number;
 END;
 /
 CREATE OR REPLACE FUNCTION check_escape(
@@ -97,14 +97,14 @@ IS
     v_length_regexp number;
     v_length_mydatafirst number;
     poz_exp number;
-    --my_public_package.my_index number;
+    --my_public_package.my_global_index number;
     square_p varchar2(50);
     normal_p varchar2(50);
     v_reverse boolean;
     reset_index number;
 BEGIN
     poz_exp := 1;
-    --my_public_package.my_index := 1;
+    --my_public_package.my_global_index := 1;
     v_length_regexp := length(regexp);
     v_length_mydatafirst := length(mydatafirst);
     
@@ -132,19 +132,19 @@ BEGIN
             EXIT WHEN ((SUBSTR(regexp,poz_exp,1) = ']') AND (check_escape(regexp, poz_exp-1)=false));
             END LOOP;
             if (v_reverse=false) then
-                if(check_square_parenthesis(square_p, mydatafirst, my_public_package.my_index) = false) then                
+                if(check_square_parenthesis(square_p, mydatafirst, my_public_package.my_global_index) = false) then                
                     --dbms_output.put_line('false 1');
                     return false;
                 end if;
             else
-                if(check_square_parenthesis_rev(square_p, mydatafirst, my_public_package.my_index) = false) then
+                if(check_square_parenthesis_rev(square_p, mydatafirst, my_public_package.my_global_index) = false) then
                     --dbms_output.put_line('false 2');
                     return false;
                 end if;
             end if;
             poz_exp := poz_exp+1;
         elsif(SUBSTR(regexp,poz_exp,1)='.') then
-            if(SUBSTR(mydatafirst,my_public_package.my_index,1)='\n') then
+            if(SUBSTR(mydatafirst,my_public_package.my_global_index,1)='\n') then
                 --dbms_output.put_line('false 3');
                 return false;
             end if;
@@ -160,40 +160,40 @@ BEGIN
             EXIT WHEN ((SUBSTR(regexp,poz_exp,1)=')') AND (check_escape(regexp, poz_exp-1)=false));
             END LOOP;
             poz_exp := poz_exp+1;
-            reset_index := my_public_package.my_index;
+            reset_index := my_public_package.my_global_index;
             if (SUBSTR(regexp,poz_exp,1)='*') then
                 WHILE (edit_col_by_regexp_f(normal_p,mydatafirst)=true) LOOP
-                    reset_index := my_public_package.my_index;
+                    reset_index := my_public_package.my_global_index;
                 END LOOP;
-                my_public_package.my_index := reset_index;
-                my_public_package.my_index := my_public_package.my_index-1;
+                my_public_package.my_global_index := reset_index;
+                my_public_package.my_global_index := my_public_package.my_global_index-1;
             elsif (SUBSTR(regexp,poz_exp,1)='+') then
                 if (edit_col_by_regexp_f(normal_p,mydatafirst)=false) then
                     return false;
                 end if;
                 WHILE (edit_col_by_regexp_f(normal_p,mydatafirst)=true) LOOP
-                    reset_index := my_public_package.my_index;
+                    reset_index := my_public_package.my_global_index;
                 END LOOP;
-                my_public_package.my_index := reset_index;
-                my_public_package.my_index := my_public_package.my_index -1;
+                my_public_package.my_global_index := reset_index;
+                my_public_package.my_global_index := my_public_package.my_global_index -1;
             end if;
             poz_exp := poz_exp+1;
         else
-            if((SUBSTR(mydatafirst,my_public_package.my_index,1) <>  SUBSTR(regexp,poz_exp,1)) AND substr(regexp,poz_exp,1)<>'\') then
-                --dbms_output.put_line('false 4' || ' ' || SUBSTR(mydatafirst,my_public_package.my_index,1) || ' ' || SUBSTR(regexp,poz_exp,1));
+            if((SUBSTR(mydatafirst,my_public_package.my_global_index,1) <>  SUBSTR(regexp,poz_exp,1)) AND substr(regexp,poz_exp,1)<>'\') then
+                --dbms_output.put_line('false 4' || ' ' || SUBSTR(mydatafirst,my_public_package.my_global_index,1) || ' ' || SUBSTR(regexp,poz_exp,1));
                 return false;
             end if;
             if(substr(regexp,poz_exp,1)='\') then
-                my_public_package.my_index := my_public_package.my_index-1;
+                my_public_package.my_global_index := my_public_package.my_global_index-1;
             end if;
             
             poz_exp := poz_exp+1;
         end if;
-        my_public_package.my_index := my_public_package.my_index+1;
-    EXIT WHEN my_public_package.my_index>v_length_mydatafirst;
+        my_public_package.my_global_index := my_public_package.my_global_index+1;
+    EXIT WHEN my_public_package.my_global_index>v_length_mydatafirst;
     END LOOP;
     if (v_length_regexp>poz_exp+1) then
-        --dbms_output.put_line('false 5' || ' ' || v_length_regexp || ' ' || poz_exp+1 || ' ' ||my_public_package.my_index);
+        --dbms_output.put_line('false 5' || ' ' || v_length_regexp || ' ' || poz_exp+1 || ' ' ||my_public_package.my_global_index);
         return false;
     end if;
     --dbms_output.put_line('true 2');
@@ -213,7 +213,7 @@ IS
     return_data return_type;
 BEGIN
     return_data := return_type(0,0);
-    my_public_package.my_index := 1;
+    my_public_package.my_global_index := 1;
 --    return_data.poz_start := 0;
 --    return_data.poz_finish := 0;
     v_length_mydatafirst := length(mydatafirst);
@@ -221,9 +221,10 @@ BEGIN
     v_current_data := '';
     WHILE (v_this_index <= v_length_mydatafirst) LOOP
         v_current_data := SUBSTR(mydatafirst,v_this_index,(v_length_mydatafirst-v_this_index+1));
+        my_public_package.my_global_index := 1;
         if(edit_col_by_regexp_f(regexp,v_current_data)=true) then
             return_data.poz_start := v_this_index;
-            return_data.poz_finish := my_public_package.my_index-1+v_this_index-1;
+            return_data.poz_finish := my_public_package.my_global_index-1+v_this_index-1;
             return return_data;
         end if;
         v_current_data := '';
@@ -236,7 +237,7 @@ set serveroutput on;
 DECLARE
     new_data return_type;
 BEGIN
-    new_data := check_where_regexp('aaa.','aazac');
+    new_data := check_where_regexp('[^a-z]aaa.','drdAaaazac');
         dbms_output.put_line('start: ' || new_data.poz_start);
         dbms_output.put_line('end: ' || new_data.poz_finish);
 END;
