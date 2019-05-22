@@ -79,6 +79,7 @@ EXCEPTION
                 EXECUTE IMMEDIATE dml_str;
             END IF;
 
+            RETURN error_code;
         EXCEPTION
             WHEN OTHERS THEN
                 DECLARE
@@ -86,8 +87,9 @@ EXCEPTION
                 BEGIN
                     IF error_code = -2292 THEN
                         dbms_output.put_line('Found duplicates but both have references. Use merge_duplicates() merge records.');
-                        RETURN -2292;
+                        RETURN error_code;
                     END IF;
+
                 END;
         END;
 END;
